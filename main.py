@@ -80,7 +80,8 @@ llm_scorer = LLMScorer()
 persona_agent = PersonaAgent()
 
 @app.post("/detect", response_model=AgentAPIResponse)
-async def detect_scam(event: ScamEventInput,  request: Request, api_key: str = Security(get_api_key)):
+async def detect_scam(event: ScamEventInput,  request: Request):
+    # api_key: str = Security(get_api_key)
     # logging block
     print("\n" + "="*70)
     print(f"DEBUG: RECEIVED NEW REQUEST at {request.url}")
