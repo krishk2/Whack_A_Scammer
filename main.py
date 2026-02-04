@@ -10,12 +10,53 @@ from persona_agent import PersonaAgent
 import httpx
 import os
 import asyncio
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 app = FastAPI(title="Scam Detection Agent")
 
 # Security Scheme
 API_KEY_NAME = "x-api-key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+
+
+
+# Add this block to your main FastAPI application file (main.py or app.py)
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    """
+    Ensures all standard HTTP errors (403, 404, 500) return a JSON body 
+    that matches the required error format from the problem statement.
+    """
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "message": exc.detail # Uses the error message from the exception (e.g., "Could not validate credentials")
+        },
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    """
+    Catches all UNHANDLED exceptions (Python crashes) and returns a 500 
+    JSON error. This is the single most important fix for "Expecting value".
+    """
+    # Log the full traceback to your console for debugging
+    import traceback
+    print("FATAL UNHANDLED EXCEPTION:")
+    traceback.print_exc()
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "Internal Server Error: An unhandled exception occurred during processing."
+        },
+    )
+
 
 async def get_api_key(api_key: str = Security(api_key_header)):
     EXPECTED_KEY = os.getenv("SERVICE_API_KEY")
