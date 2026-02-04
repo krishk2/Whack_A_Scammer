@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Security, Header
+from fastapi import FastAPI, HTTPException, Security, Header,Request
 from fastapi.security import APIKeyHeader
 from models import ScamEventInput, AgentAPIResponse
 from config import Config
@@ -39,7 +39,30 @@ llm_scorer = LLMScorer()
 persona_agent = PersonaAgent()
 
 @app.post("/detect", response_model=AgentAPIResponse)
-async def detect_scam(event: ScamEventInput, api_key: str = Security(get_api_key)):
+async def detect_scam(event: ScamEventInput, api_key: str = Security(get_api_key), request: Request):
+    # logging block
+    print("\n" + "="*70)
+    print(f"DEBUG: RECEIVED NEW REQUEST at {request.url}")
+
+    # 1. Log all Headers (Crucial for Content-Type and x-api-key check)
+    print("DEBUG: RECEIVED HEADERS:")
+    for key, value in request.headers.items():
+        print(f"  {key}: {value}")
+    
+    # 2. Log Raw Body (The absolute best way to catch non-JSON data)
+    # WARNING: To get the raw body, you must call .body() BEFORE the Pydantic 
+    # model (ScamEventInput) attempts to access it. Fortunately, FastAPI will
+    # handle the body access even with the Pydantic dependency.
+    try:
+        raw_body = await request.body()
+        # Decode body to see it as a string, including any leading/trailing garbage
+        print("DEBUG: RAW REQUEST BODY:")
+        print(raw_body.decode('utf-8'))
+    except Exception as e:
+        print(f"DEBUG: Could not read raw body: {e}")
+    
+    print("="*70 + "\n")
+    
     # Step 0: Increment Message Count
     total_msgs = await memory_store.increment_message_count(event.sessionId)
 
